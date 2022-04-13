@@ -1,0 +1,22 @@
+program alltest;
+var a,b : integer;
+var rx,ry : real;
+var c : integer;
+begin
+   a := 12.34;
+   read(rx,ry);
+   if (a > (500 / (rx - ry))) then 
+       read (ry);
+   if (1 <> ry) then
+     if (a > 0) then
+        begin
+           read(a);
+           rx := a - 1.5 + rx / (ry + (a + b));
+        end;
+--- test while statements
+   while (a <> 0) do
+     begin
+      read(a);
+      write(a,b,c,rx,ry);
+     end;
+end.

@@ -74,21 +74,44 @@
 <bool>                  =>           <expression> <relation op> <expression>
 <relation op>           =>           < | = | > | <= | <> | >=
 */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include "micro.h"
-
-Token  Lookahead;
-extern int LineCount;
+#include "parsererr.h"
 
 static char* TokenArray[] = {
-    "BeginSym", "DoSym", "EndSym", "IfSym", "IntegerSym", "ProgramSym", "ReadSym", 
-   "RealSym", "ThenSym", "VarSym", "WhileSym", "WriteSym", "EofSym", "ErrorSym", "Id", 
-   "IntNum", "FloatNum", "Plus", "Minus", "Times", "Slash", "Less", "Equal", "Greater",
-   "LessEq", "NotEqual", "GreaterEq", "Assign", "SemiColon", "Comma", "Colon", 
-   "Period", "LParen", "RParen"
+    "Begin", "Do", "End", "If", "Integer", "Program", "Read", 
+   "real", "then", "Var", "while", "Write", "Eof", "Error", "id", 
+   "int", "float", "+", "-", "*", "/", "<", "=", ">",
+   "<=", "<>", ">=", ":=", ";", ",", ":", 
+   ".", "(", ")"
     };
+
+Token  Lookahead;
+int ErrorCount;
+char *arr[500]; // Array which save All errors
+int arrLines[32]; //arr helper Linecount display
+int DisplayErrCount=0; // arr helper
+
+
+
+
+/* change int to type whose size is big enough to hold all the Tokens, e.g., long long */
+typedef unsigned int SymbolSet;
+
+/* these macros will make life easier */
+#define EL(a)      (1 << ((unsigned)a))    /* Element: turns elements to sets, i.e., numbers into bits */
+#define IN(a,S)    (((S) & EL(a)) != 0)    /* TRUE if a in set S */
+
+/* First and Follow sets */
+SymbolSet ProgramNameStarters,
+    StmtStarters, ExprListStarters, ExprStarters,
+    FactorStarters, IdListStarters;
+    
+
+SymbolSet ProgramNameFollowers, ExprListFollowers,
+    ExprFollowers, FactorFollowers, IdListFollowers;
+
 
 /* Function prototypes */
 void IdList();
@@ -96,22 +119,118 @@ void Expression();
 void ExpressionList();
 void ExprListTail();
 
+
+void TestSymbolSet(SymbolSet S)
+// TestSymbolSet
+{
+    Token    i;    
+    printf("--------\n");
+    for ( i = BeginSym; i <= ErrorSym; i++ )
+        if ( IN(i, S) )
+            printf("%s\n", TokenArray[i]);
+    printf("--------\n");
+}
+
+/* PANIC RECOVERY 
 void SyntaxError (Token T)
     {
     printf("##Syntax Error: line %d at token %s \n", LineCount, TokenArray[T]);
     printf("\n ERROR \n");
-    exit(1); /* panic recovery */
+    exit(1); 
+    }
+*/
+void SyntaxError(Token T)
+// SyntaxError
+{
+    ErrorCount += 1;    /* increment the count and report an error */
+    printf("\n error: unexpected symbol '%s'\n",TokenArray[Lookahead]);
+} 
+
+void SkipTo(SymbolSet RelevantSymbols)
+// SkipTo
+{
+    while ( !IN(Lookahead, RelevantSymbols) )
+        Lookahead = GetNextToken();
+} // SkipTo
+
+void InitSymbolSets() //Not Implemented
+{
+/* The First sets for all nonterminals */
+   ProgramNameStarters = EL(Id);
+
+/* The Follow sets for all nonterminals */
+    ProgramNameFollowers = EL(SemiColon);
+
+
+   TestSymbolSet(ProgramNameStarters);
+   TestSymbolSet(ProgramNameFollowers);
+}
+
+int CheckForStarters(SymbolSet Starters, SymbolSet Followers)
+// CheckForStarters
+{
+    if ( !IN(Lookahead, Starters) )
+    {
+        SyntaxError(ErrorSym);
+        SkipTo(Starters | Followers);
+    }
+    return IN(Lookahead, Starters);
+    
+} 
+
+
+void FindFollowers(SymbolSet Followers)
+// FindFollowers
+{
+    if ( !IN(Lookahead, Followers) )
+    {
+        SyntaxError(ErrorSym);
+        SkipTo(Followers);
+    }
+}
+void TokenErrorPTR() // Marker
+{
+    for(int i =0; i<LineLength;i=i+1)
+    {
+        if (i==LinePtr)
+            printf("^");
+        printf("-");
     }
 
+}
+
+void TableError() // Method which add error to table
+{
+    int i;
+    char **ptr = arr;
+
+    ptr[DisplayErrCount] = TokenArray[Lookahead];
+    arrLines[DisplayErrCount] = LineCount;
+    DisplayErrCount= DisplayErrCount+1;
+}
+
+void TableErrorView() // Method which add error to table
+{
+    int i;
+    int j;
+    for ( i = 0,j=0; i < ErrorCount; i++,j++)
+        printf("\n Line %d : %s", arrLines[j], arr[i]);
+}
+
 void Match (Token T)
-    {
+{
     if (Lookahead == T)
        Lookahead = GetNextToken();
-    else{
-       printf("symbol %s expected but %s found",TokenArray[T], TokenArray[Lookahead]);
-       SyntaxError (T);
+    else{ // Exception with Token Buffer for ID 
+        ErrorCount=ErrorCount+1;
+        TokenErrorPTR();
+        TableError();
+        if(Lookahead==Id)
+            printf(" -> symbol '%s' expected but '%s' found \n",TokenArray[T], TokenBuffer);
+        else
+            printf(" -> symbol '%s' expected but '%s' found\n",TokenArray[T], TokenArray[Lookahead]);
        }
-    }
+}
 void RelationOp()
 /*<relation op>  =>  < | = | > | <= | <> | >= */
 {
@@ -265,9 +384,10 @@ void Statement()
             Match(RParen);
             Match(DoSym);
             Statement();
-        }else SyntaxError(Lookahead); // ERROR
         }
-        if(Lookahead==Id) // <statement> -> <ident> := <expression> ;
+        }
+
+    if(Lookahead==Id) // <statement> -> <ident> := <expression> ;
         {
             Ident();
             Match(Assign);
@@ -303,7 +423,7 @@ void Statement()
             Match(RParen);
             Match(DoSym);
             Statement();
-        }else SyntaxError(Lookahead); // ERROR
+        }
 }
 void StatmentListTail()
 {
@@ -330,15 +450,15 @@ void OptionalStatment()
         Match(SemiColon);
     }
 }
-void Type(){
+void Type()
 /*<type>-> INTEGER |  REAL*/
+{
     if (Lookahead == RealSym){
        Match(RealSym);
     }
     else if (Lookahead == IntegerSym){
        Match(IntegerSym);
     }
-    else SyntaxError(Lookahead);
 }
 void IdListTail()
 {
@@ -348,13 +468,14 @@ void IdListTail()
         IdListTail();
     }
 }
-void IdList(){
+void IdList()
 /*<ident><id list tail> */
+{
     Ident();
     IdListTail();
 }
 void Declaration()
-   /*<declaration>  -> VAR <id list> : <type> ; */
+/*<declaration>  -> VAR <id list> : <type> ; */
 {
     Match(VarSym);
     IdList();
@@ -362,8 +483,8 @@ void Declaration()
     Type();
     Match(SemiColon);
 }
-/* NULL | <declaration><declaration list tail> */
 void DeclarationListTail()
+/* NULL | <declaration><declaration list tail> */
 {
     if(Lookahead == VarSym){
         Declaration();
@@ -388,16 +509,20 @@ void OptionalDeclaration()
     DeclarationList();
    }
 }
-void Name(){
+void Name()
 /* <name> ->Ident */
+{
     Ident();
     Match(SemiColon);
 }
 void ProgramProc()
 /*PROGRAM <name> <optional declaration> BEGIN <optional statement> END. */
-    {
+{
     Match(ProgramSym);
     Name();
     OptionalDeclaration();
     OptionalStatment();
-    }
+    Match(EndSym);
+    Match(Period);
+    Match(EofSym);
+}

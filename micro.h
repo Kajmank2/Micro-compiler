@@ -46,8 +46,11 @@ extern NodePtr Enter(IdString, Token);
 
 /*  The GLOBAL VARIABLES CONTAINING LEXEMES */
 extern int LastSymbol;  /* must be initialized to 0 */
+extern int LineLength;  /*Error Recover */
 extern IdString IntLexeme;      /* the lexeme for an integer */
 extern IdString FloatLexeme;    /* the lexeme for a real */
 extern NodePtr IdVal;           /* the lexeme for an identifier */
+extern IdString TokenBuffer;
+extern int LinePtr;
 
 

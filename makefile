@@ -1,10 +1,15 @@
-CC = cc
-OBJFILE = main.o scanner.o symtab.o parser.o
+CC = gcc
+OBJFile = parsererr
+OBJBase = \
+	main.o\
+	parser.o\
+	scanner.o\
+	symtab.o
 
-scanner: $(OBJFILE)
-	$(CC) -o scanner $(OBJFILE)
+parsererr: $(OBJBase)
+	$(CC) -o $(OBJFile) $(OBJBase)
 
-$(OBJFILE): micro.h
+$(OBJBase):micro.h
 
 clean:
-	rm *.o
+	rm $(OBJBase)

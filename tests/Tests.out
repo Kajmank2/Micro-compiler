@@ -1,0 +1,56 @@
+TEST #1
+1 program s; 
+
+2 var a,b :  integer; 
+
+3 var rx,ry : real; 
+
+4 var c : integer; 
+
+5 begin 
+
+6    while (a <> 0) do 
+
+7      begin s 
+
+8       read(a); 
+---------^------ -> symbol ':=' expected but 'Read' found
+---------^------ -> symbol ';' expected but 'Read' found
+
+9       write(a,b,c,rx,ry); 
+
+10      end; d 
+----------^-- -> symbol 'End' expected but 'd' found 
+----------^-- -> symbol '.' expected but 'd' found 
+----------^-- -> symbol 'Eof' expected but 'd' found 
+ 
+ 5 errors detected.
+
+#TEST 2
+
+1 program  s; 
+
+2 var a,b :  integer; 
+
+3 var rx,ry : real; 
+
+4 var c : integer; 
+
+5 begin  
+
+6    while (a <> 0) do  
+
+7      begin  
+
+8       read(a); 
+
+9       sd write(a,b,c,rx,ry); 
+-------------^---------------- -> symbol ':=' expected but 'Write' found
+-------------^---------------- -> symbol ';' expected but 'Write' found
+
+10      end;  
+
+11 end. 
+ 
+ 2 errors detected.
+

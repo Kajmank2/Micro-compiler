@@ -1,0 +1,11 @@
+program alltest;
+var a,b : integer;
+var rx,ry : real;
+var c : integer;
+begin
+   while (a <> 0) do
+     begin
+      read(a);
+      write(a,b,c,rx,ry);
+     end;
+end.
